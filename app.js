@@ -1,19 +1,30 @@
 class App {
   constructor() {
-    // console.log('app works!')  
-    this.notes = []
+    this.notes = [] // store notes
+    this.title = '' // store note titles
+    this.text = '' // store note texts
+    this.id = '' // store id:s of the notes
+
     this.$placeholder = document.querySelector('#placeholder');
-    this.$form = document.querySelector('#form')// query for the form element and put it on our app (creating a reference to our form). $ before 'this' because we are quering for an html-element (and not data)
+    this.$form = document.querySelector('#form')// $ before 'this' because quering for an html-element (and not data)
     this.$notes = document.querySelector('#notes');
     this.$noteTitle = document.querySelector('#note-title')
     this.$noteText = document.querySelector('#note-text')
     this.$formButtons = document.querySelector('#form-buttons')
-    this.addEventListeners() // run when app starts
+    this.$formCloseButton = document.querySelector('#form-close-button')
+    this.$modal = document.querySelector(".modal");
+    this.$modalTitle = document.querySelector(".modal-title")
+    this.$modalText = document.querySelector(".modal-text")
+    this.$modalCloseButton = document.querySelector('.modal-close-button')
+
+    this.addEventListeners()
   }
 
-  addEventListeners() { // --> The place to add eventlisteners for the app. For example that textfield expands when clicked to add a note (handleFormClick).
+  addEventListeners() {
     document.body.addEventListener('click', event => {
       this.handleFormClick(event)
+      this.selectNote(event) // to select a specific note to edit
+      this.openModal(event) // --> this has to be placed after selectNote in order for the modal to be populated accordingly with the text & title values.
     })
 
     this.$form.addEventListener('submit', event => {
@@ -25,12 +36,28 @@ class App {
         this.addNote({ title, text })
       }
     })
+
+    this.$formCloseButton.addEventListener('click', event => {
+      event.stopPropagation() // To prevent the eventhandler on the form to kick in.
+      this.closeForm()
+    })
+
+    this.$modalCloseButton.addEventListener('click', event => {
+      this.closeModal(event)
+    })
   }
 
   handleFormClick(event) {
     const isFormClicked = this.$form.contains(event.target)
+
+    const title = this.$noteTitle.value
+    const text = this.$noteText.value
+    const hasNote = title || text
+
     if (isFormClicked) {
       this.openForm()
+    } else if (hasNote) {
+      this.addNote({ title, text })
     } else {
       this.closeForm()
     }
@@ -50,17 +77,48 @@ class App {
     this.$noteText.value = '';
   }
 
-  addNote(note) {
+  openModal(event) {
+    if (event.target.closest('.note')) {
+      this.$modal.classList.toggle('open-modal')
+      this.$modalTitle.value = this.title // populate the title & text in the modal with existing values
+      this.$modalText.value = this.text
+    }
+  }
+
+  closeModal(event) { // Close modal and edit the content in the note on close
+    this.editNote()
+    this.$modal.classList.toggle('open-modal');  
+  }
+
+  addNote({ title, text }) {
     const newNote = {
-      title: note.title,
-      text: note.text,
+      title,
+      text,
       color: '#fff',
       id: this.notes.length > 0 ? this.notes[this.notes.length - 1].id + 1 : 1 // Making an id from the length of the array +1
     }
     this.notes = [...this.notes, newNote]
-    // console.log(this.notes)
     this.displayNotes()
     this.closeForm()
+  }
+
+  editNote() {
+    const title = this.$modalTitle.value
+    const text = this.$modalText.value
+    this.notes = this.notes.map(note =>
+      note.id === Number(this.id) ? { ...note, title, text } : note // if it's the selected note, update the text & title
+    )
+    this.displayNotes()
+  }
+
+  selectNote(event) {
+    const $selectedNote = event.target.closest('.note')
+    // console.log($selectedNote.children)
+    if (!$selectedNote) return // to prevent error if no children exists
+    const [$noteTitle, $noteText] = $selectedNote.children // array-destructuring to get the specific note-elements in the selected note
+    this.title = $noteTitle.innerText // get the content of the elements set them equal to the values of text / title
+    this.text = $noteText.innerHTML
+    this.id = $selectedNote.dataset.id // get the data-id from the note (note.id) & update it
   }
 
   displayNotes() {
@@ -68,7 +126,7 @@ class App {
     this.$placeholder.style.display = hasNotes ? 'none' : 'flex'
 
     this.$notes.innerHTML = this.notes.map(note => `
-      <div style="background: ${note.color};" class="note">
+      <div style="background: ${note.color};" class="note" data-id="${note.id}">
         <div class="${note.title && 'note-title'}">${note.title}</div>
         <div class="note-text">${note.text}</div>
         <div class="toolbar-container">
@@ -86,7 +144,7 @@ class App {
           </div>
         </div>
       </div>
-    `).join("") // join the string of notes that shows on the page (to get rid of comma between each note.)
+    `).join("") // join the string of notes (to get rid of comma between each note.)
   }
 }
 
