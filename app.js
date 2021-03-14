@@ -1,6 +1,6 @@
 class App {
   constructor() {
-    this.notes = [] // store notes
+    this.notes = JSON.parse(localStorage.getItem('notes')) || []// store notes, parse turns notes from a string into an array
     this.title = '' // store note titles
     this.text = '' // store note texts
     this.id = '' // store id:s of the notes
@@ -18,6 +18,7 @@ class App {
     this.$modalCloseButton = document.querySelector('.modal-close-button')
     this.$colorTooltip = document.querySelector('#color-tooltip')
 
+    this.renderNotes()
     this.addEventListeners()
   }
 
@@ -142,7 +143,7 @@ class App {
       id: this.notes.length > 0 ? this.notes[this.notes.length - 1].id + 1 : 1 // Making an id from the length of the array +1
     }
     this.notes = [...this.notes, newNote]
-    this.displayNotes()
+    this.renderNotes()
     this.closeForm()
   }
 
@@ -152,14 +153,14 @@ class App {
     this.notes = this.notes.map(note =>
       note.id === Number(this.id) ? { ...note, title, text } : note // if it's the selected note, update the text & title
     )
-    this.displayNotes()
+    this.renderNotes()
   }
 
   editNoteColor(color) {
     this.notes = this.notes.map(note =>
       note.id === Number(this.id) ? { ...note, color } : note
     );
-    this.displayNotes();
+    this.renderNotes();
   }
 
   selectNote(event) {
@@ -172,12 +173,21 @@ class App {
     this.id = $selectedNote.dataset.id // get the data-id from the note (note.id) & update it
   }
 
+  renderNotes() {
+    this.saveNotes();
+    this.displayNotes(); 
+  }
+
+  saveNotes() { 
+    localStorage.setItem('notes', JSON.stringify(this.notes)) // key, value--> turn value to string
+  }
+
   deleteNote(event) {
     event.stopPropagation() // to prevent 'bubbling', not to have the modal open up when clicking delete
     if (!event.target.matches('.toolbar-delete')) return
     const id = event.target.dataset.id // local id variable
     this.notes = this.notes.filter(note => note.id !== Number(id)) // filter out all notes except the one to delete
-    this.displayNotes() 
+    this.renderNotes() 
   }
 
   displayNotes() {
